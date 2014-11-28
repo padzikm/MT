@@ -14,7 +14,14 @@ line      : Print exp Endl
             {
                try
                {
-                   Console.Write("  Result:  {0}\n> ", $2.val);
+					if($2.error == null)
+					{
+						Console.Write("  Result:  {0}\n> ", $2.val);
+					}
+					else if(!$2.errorPrinted)
+					{
+						Console.Write($2.error+"\n> ");
+					}
                }
                catch ( ErrorException e)
                {
@@ -37,8 +44,15 @@ line      : Print exp Endl
             {
                try
                {
-                   Compiler.Mem($1.val, $3);
-                   Console.Write("  OK\n> ");
+					if($3.error == null)
+					{
+						Compiler.Mem($1.val, $3);
+						Console.Write("  OK\n> ");
+					}
+					else if(!$3.errorPrinted)
+					{
+						Console.Write($3.error+"\n> ");
+					}
                }
                catch ( ErrorException e)
                {
@@ -98,7 +112,19 @@ factor    : OpenPar exp ClosePar
 		  | Boolean
                { $$.val = $1.val; $$.type = 'b'; }
           | Ident
-               { $$.val = Compiler.GetValue($1.val); $$.type = Compiler.GetType($1.val); }
+            { 
+			   try
+			   {
+					$$.val = Compiler.GetValue($1.val);
+					$$.type = Compiler.GetType($1.val);
+			   }
+			   catch(ErrorException e)
+			   {
+					$$.error = e.Message;
+					Console.Write(e.Message+"\n> ");
+					$$.errorPrinted = true;
+			   }
+			}
           ;
 
 %%

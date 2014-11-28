@@ -59,7 +59,7 @@ public class Compiler
     {
         if (!_identificators.ContainsKey(id))
             throw new ErrorException(string.Format("  variable {0} not declared", id));
-        if(_identificators[id].Item2 == null)
+        if (_identificators[id].Item2 == null)
             throw new ErrorException(string.Format("  variable {0} not initialized", id));
 
         return _identificators[id].Item2;
@@ -67,8 +67,12 @@ public class Compiler
 
     public static SemanticValue AritmeticalOp(SemanticValue left, SemanticValue right, Tokens t)
     {
-        if(left.type == 'b' || right.type == 'b')
-            throw new ErrorException("  bool not allowed in arithmetical ops");
+        if (right.error != null)
+            return right;
+        if (left.error != null)
+            return left;
+        if (left.type == 'b' || right.type == 'b')
+            return new SemanticValue { error = "  bool not allowed in arithmetical ops" };
 
         SemanticValue res = new SemanticValue();
         double l = double.Parse(left.val, CultureInfo.InvariantCulture);
@@ -76,7 +80,7 @@ public class Compiler
         double result = 0;
 
         res.type = (left.type == 'i' && right.type == 'i') ? 'i' : 'r';
-        
+
         switch (t)
         {
             case Tokens.Plus:
@@ -89,10 +93,10 @@ public class Compiler
                 result = l * r;
                 break;
             case Tokens.Divides:
-                if(r != 0)
+                if (r != 0)
                     result = l / r;
                 else
-                    throw new ErrorException("  divide by zero");
+                    return new SemanticValue { error = "  divide by zero" };
                 break;
             default:
                 Console.WriteLine("  internal error");
@@ -100,7 +104,7 @@ public class Compiler
         }
 
         if (res.type == 'i')
-            res.val = ((int) result).ToString();
+            res.val = ((int)result).ToString();
         else
             res.val = result.ToString();
 
@@ -112,6 +116,8 @@ public struct SemanticValue
 {
     public char type;
     public string val;
+    public string error;
+    public bool errorPrinted;
 }
 
 class ErrorException : ApplicationException
