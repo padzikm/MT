@@ -46,7 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Complier.cs" />
+    <Compile Include="Compiler.cs" />
     <Compile Include="parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="scanner.cs" />

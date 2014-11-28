@@ -1,15 +1,8 @@
 %namespace GardensPoint
 
-%union
-{
-	public string      val;
-	public SyntaxTree  st;
-}
+%YYSTYPE SemanticValue
 
-%token Print Exit Assign Plus Minus Multiplies Divides OpenPar ClosePar Endl Eof Error
-%token <val> Ident IntNumber RealNumber Boolean Typ
-
-%type <st> exp term factor
+%token Print Exit Ident IntNumber RealNumber Boolean Type Assign Plus Minus Multiplies Divides OpenPar ClosePar Endl Eof Error
 
 %%
 
@@ -21,18 +14,18 @@ line      : Print exp Endl
             {
                try
                {
-                   Console.Write("  Result:  {0}\n> ",$2.Compute());
+                   Console.Write("  Result:  {0}\n> ", $2.val);
                }
                catch ( ErrorException e)
                {
                    Console.Write(e.Message+"\n> ");
                }
             }
-		  | Typ Ident Endl
+		  | Type Ident Endl
 			{
 				try
 				{
-					Compiler.Declare($1, $2);
+					Compiler.Declare($1.type, $2.val);
 					Console.Write("  OK\n> ");
 				}
 				catch(ErrorException e)
@@ -44,7 +37,7 @@ line      : Print exp Endl
             {
                try
                {
-                   Compiler.Mem($1, $3.Compute());
+                   Compiler.Mem($1.val, $3);
                    Console.Write("  OK\n> ");
                }
                catch ( ErrorException e)
@@ -57,10 +50,21 @@ line      : Print exp Endl
                Console.WriteLine("  OK, exited");
                YYACCEPT;
             }
+		  | Exit Eof
+            {
+               Console.WriteLine("  OK, exited");
+               YYACCEPT;
+            }
           | error Endl
             {
                Console.Write("  syntax error\n> ");
                yyerrok();
+            }
+		  | error Eof
+            {
+               Console.Write("  syntax error\n> ");
+               yyerrok();
+               YYACCEPT;
             }
           | Eof
             {
@@ -70,17 +74,17 @@ line      : Print exp Endl
           ;
 
 exp       : exp Plus term
-               { $$ = new AritmeticalOp($1,$3,Tokens.Plus); }
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Plus); }
           | exp Minus term
-               { $$ = new AritmeticalOp($1,$3,Tokens.Minus); }
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Minus); }
           | term
                { $$ = $1; }
           ;
 
 term      : term Multiplies factor
-               { $$ = new AritmeticalOp($1,$3,Tokens.Multiplies); }
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Multiplies); }
           | term Divides factor
-               { $$ = new AritmeticalOp($1,$3,Tokens.Divides); }
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Divides); }
           | factor
                { $$ = $1; }
           ;
@@ -88,13 +92,13 @@ term      : term Multiplies factor
 factor    : OpenPar exp ClosePar
                { $$ = $2; }
           | IntNumber
-               { $$ = new IntNumber(int.Parse($1)); }
+               { $$.val = $1.val; $$.type = 'i'; }
 		  | RealNumber
-               { $$ = new RealNumber(double.Parse($1, CultureInfo.InvariantCulture)); }
+               { $$.val = $1.val; $$.type = 'r'; }
 		  | Boolean
-               { $$ = new Boolean(bool.Parse($1)); }
+               { $$.val = $1.val; $$.type = 'b'; }
           | Ident
-               { $$ = new Ident($1); }
+               { $$.val = Compiler.GetValue($1.val); $$.type = Compiler.GetType($1.val); }
           ;
 
 %%

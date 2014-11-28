@@ -1,6 +1,7 @@
 %using QUT.Gppg;
 %namespace GardensPoint
 
+Type		"int"|"real"|bool
 IntNumber   [0-9]+
 RealNumber  [0-9]+\.[0-9]+
 Boolean		"true"|"false"
@@ -14,9 +15,7 @@ PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 {IntNumber}			{ yylval.val=yytext; return (int)Tokens.IntNumber; }
 {RealNumber}		{ yylval.val=yytext; return (int)Tokens.RealNumber; }
 {Boolean}			{ yylval.val=yytext; return (int)Tokens.Boolean; }
-"int"				{ yylval.val=yytext; return (int)Tokens.Typ; }
-"real"				{ yylval.val=yytext; return (int)Tokens.Typ; }
-"bool"				{ yylval.val=yytext; return (int)Tokens.Typ; }
+{Type}				{ yylval.type=yytext[0]; return (int)Tokens.Type; }
 {Ident}				{ yylval.val=yytext; return (int)Tokens.Ident; }
 "="					{ return (int)Tokens.Assign; }
 "+"					{ return (int)Tokens.Plus; }
