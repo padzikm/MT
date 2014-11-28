@@ -1,0 +1,5 @@
+C:\Projects\MT\MT\MT\bin\Debug\MT.exe.config
+C:\Projects\MT\MT\MT\bin\Debug\MT.exe
+C:\Projects\MT\MT\MT\bin\Debug\MT.pdb
+C:\Projects\MT\MT\MT\obj\Debug\MT.exe
+C:\Projects\MT\MT\MT\obj\Debug\MT.pdb
