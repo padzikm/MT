@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using GardensPoint;
@@ -9,23 +10,16 @@ public class Compiler
 
     static Compiler()
     {
-        _identificators = new Dictionary<string, Tuple<char, string>> { { "Pi", new Tuple<char, string>('r', Math.PI.ToString()) }, { "E", new Tuple<char, string>('r', Math.E.ToString()) } };
+        _identificators = new Dictionary<string, Tuple<char, string>> { { "Pi", new Tuple<char, string>('r', Math.PI.ToString(CultureInfo.InvariantCulture)) }, { "E", new Tuple<char, string>('r', Math.E.ToString(CultureInfo.InvariantCulture)) } };
     }
 
     public static void Main()
     {
-        try
-        {
-            Console.WriteLine("\nMultiline Calculator - Gardens Point");
-            Console.Write("\n> ");
-            Scanner scanner = new Scanner(Console.OpenStandardInput());
-            Parser parser = new Parser(scanner);
-            parser.Parse();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+        Console.WriteLine("\nMultiline Calculator - Gardens Point");
+        Console.Write("\n> ");
+        Scanner scanner = new Scanner(Console.OpenStandardInput());
+        Parser parser = new Parser(scanner);
+        parser.Parse();
     }
 
     public static void Declare(char type, string id)
@@ -63,6 +57,47 @@ public class Compiler
             throw new ErrorException(string.Format("  variable {0} not initialized", id));
 
         return _identificators[id].Item2;
+    }
+
+    public static SemanticValue Function(string func, SemanticValue exp)
+    {
+        if (exp.error != null)
+            return exp;
+        if (exp.type == 'b')
+            return new SemanticValue {error = "  bool not allowed in functions"};
+
+        SemanticValue res = new SemanticValue();
+        double str;
+        double val = double.Parse(exp.val, CultureInfo.InvariantCulture);
+
+        switch (func)
+        {
+            case "sin":
+                str = Math.Sin(val);
+                break;
+            case "cos":
+                str = Math.Cos(val);
+                break;
+            case "tg":
+                str = Math.Tan(val);
+                break;
+            case "ctg":
+                str = 1 / Math.Tan(val);
+                break;
+            case "sqrt":
+                str = Math.Sqrt(val);
+                break;
+            case "lg2":
+                str = Math.Log(val,2);
+                break;
+            default:
+                return new SemanticValue { error = "  function not recognized" };
+        }
+
+        res.type = 'r';
+        res.val = str.ToString(CultureInfo.InvariantCulture);
+
+        return res;
     }
 
     public static SemanticValue AritmeticalOp(SemanticValue left, SemanticValue right, Tokens t)
@@ -106,7 +141,7 @@ public class Compiler
         if (res.type == 'i')
             res.val = ((int)result).ToString();
         else
-            res.val = result.ToString();
+            res.val = result.ToString(CultureInfo.InvariantCulture);
 
         return res;
     }

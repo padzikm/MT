@@ -5,7 +5,7 @@ Type		"int"|"real"|bool
 IntNumber   [0-9]+
 RealNumber  [0-9]+\.[0-9]+
 Boolean		"true"|"false"
-Ident       [a-z][a-z0-9]*
+Ident       "Pi"|"E"|[a-z][a-z0-9]*
 PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 
 %%

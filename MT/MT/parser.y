@@ -105,6 +105,13 @@ term      : term Multiplies factor
 
 factor    : OpenPar exp ClosePar
                { $$ = $2; }
+		  | Ident OpenPar exp ClosePar
+			{
+				if($3.error == null)
+				{
+					$$ = Compiler.Function($1.val, $3);
+				}
+			}
           | IntNumber
                { $$.val = $1.val; $$.type = 'i'; }
 		  | RealNumber
@@ -121,8 +128,8 @@ factor    : OpenPar exp ClosePar
 			   catch(ErrorException e)
 			   {
 					$$.error = e.Message;
-					Console.Write(e.Message+"\n> ");
 					$$.errorPrinted = true;
+					Console.Write(e.Message+"\n> ");
 			   }
 			}
           ;
