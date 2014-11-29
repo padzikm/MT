@@ -111,6 +111,10 @@ factor    : OpenPar exp ClosePar
 				{
 					$$ = Compiler.Function($1.val, $3);
 				}
+				else
+				{
+					$$ = $3;
+				}
 			}
           | IntNumber
                { $$.val = $1.val; $$.type = 'i'; }
