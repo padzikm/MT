@@ -20,7 +20,7 @@ line      : Print exp Endl
 					{
 						Console.Write("  Result:  {0}\n> ", $2.val);
 					}
-					else if(!$2.errorPrinted)
+					else
 					{
 						Console.Write($2.error+"\n> ");
 					}
@@ -51,7 +51,7 @@ line      : Print exp Endl
 						Compiler.Mem($1.val, $3);
 						Console.Write("  OK\n> ");
 					}
-					else if(!$3.errorPrinted)
+					else
 					{
 						Console.Write($3.error+"\n> ");
 					}
@@ -117,7 +117,7 @@ art       : art Plus term
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Plus); }
           | art Minus term
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Minus); }
-          | term
+          | mterm
                { $$ = $1; }
           ;
 
@@ -129,19 +129,18 @@ term      : term Multiplies factor
                { $$ = $1; }
           ;
 
+mterm     : mterm Multiplies factor
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Multiplies); }
+          | mterm Divides factor
+               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Divides); }
+          | mfactor
+               { $$ = $1; }
+          ;
+
 factor    : OpenPar exp ClosePar
                { $$ = $2; }
 		  | Ident OpenPar art ClosePar
-			{
-				if($3.error == null)
-				{
-					$$ = Compiler.Function($1.val, $3);
-				}
-				else
-				{
-					$$ = $3;
-				}
-			}
+			   { $$ = Compiler.Function($1.val, $3); }
           | IntNumber
                { $$.val = $1.val.TrimStart('0'); $$.type = 'i'; }
 		  | RealNumber
@@ -149,19 +148,13 @@ factor    : OpenPar exp ClosePar
 		  | Boolean
                { $$.val = $1.val; $$.type = 'b'; }
           | Ident
-            { 
-			   try
-			   {
-					$$.val = Compiler.GetValue($1.val);
-					$$.type = Compiler.GetType($1.val);
-			   }
-			   catch(ErrorException e)
-			   {
-					$$.error = e.Message;
-					$$.errorPrinted = true;
-					Console.Write(e.Message+"\n> ");
-			   }
-			}
+			   { $$ = Compiler.GetVariable($1.val); }
+          ;
+
+mfactor   : factor
+			   { $$ = $1; }
+		  | Minus factor
+			   { $$ = Compiler.NegationOp($2); }
           ;
 
 %%

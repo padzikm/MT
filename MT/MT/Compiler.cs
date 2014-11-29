@@ -42,22 +42,14 @@ public class Compiler
         _identificators[id] = new Tuple<char, string>(value.type, value.val);
     }
 
-    public static char GetType(string id)
+    public static SemanticValue GetVariable(string id)
     {
         if (!_identificators.ContainsKey(id))
-            throw new ErrorException(string.Format("  variable {0} not declared", id));
-
-        return _identificators[id].Item1;
-    }
-
-    public static string GetValue(string id)
-    {
-        if (!_identificators.ContainsKey(id))
-            throw new ErrorException(string.Format("  variable {0} not declared", id));
+            return new SemanticValue{ error = string.Format("  variable {0} not declared", id) };
         if (_identificators[id].Item2 == null)
-            throw new ErrorException(string.Format("  variable {0} not initialized", id));
+            return new SemanticValue{ error = string.Format("  variable {0} not initialized", id) };
 
-        return _identificators[id].Item2;
+        return new SemanticValue { type = _identificators[id].Item1, val = _identificators[id].Item2 };
     }
 
     public static SemanticValue Function(string func, SemanticValue exp)
@@ -238,6 +230,30 @@ public class Compiler
 
         return res;
     }
+
+    public static SemanticValue NegationOp(SemanticValue value)
+    {
+        if (value.error != null)
+            return value;
+        if (value.type == 'b')
+            return new SemanticValue {error = "  bool not allowed in negation ops"};
+
+        SemanticValue res = new SemanticValue();
+        res.type = value.type;
+
+        if (value.type == 'i')
+        {
+            int v = int.Parse(value.val);
+            res.val = (-v).ToString();
+        }
+        else
+        {
+            double v = double.Parse(value.val);
+            res.val = (-v).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return res;
+    }
 }
 
 public struct SemanticValue
@@ -245,7 +261,6 @@ public struct SemanticValue
     public char type;
     public string val;
     public string error;
-    public bool errorPrinted;
 }
 
 class ErrorException : ApplicationException
