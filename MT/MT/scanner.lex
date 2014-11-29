@@ -30,6 +30,7 @@ PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 "-"					{ return (int)Tokens.Minus; }
 "*"					{ return (int)Tokens.Multiplies; }
 "/"					{ return (int)Tokens.Divides; }
+"!"					{ return (int)Tokens.Negation; }
 "("					{ return (int)Tokens.OpenPar; }
 ")"					{ return (int)Tokens.ClosePar; }
 "\r"				{ return (int)Tokens.Endl; }

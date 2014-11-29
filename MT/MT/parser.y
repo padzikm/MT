@@ -4,7 +4,7 @@
 
 %token Print Exit Endl Eof Error
 %token Ident IntNumber RealNumber Boolean Type
-%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
+%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides Negation OpenPar ClosePar
 
 %%
 
@@ -132,24 +132,24 @@ art       : art Plus term
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Plus); }
           | art Minus term
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Minus); }
-          | mterm
+          | term
                { $$ = $1; }
           ;
 
-term      : term Multiplies factor
+term      : term Multiplies tmpfactor
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Multiplies); }
-          | term Divides factor
+          | term Divides tmpfactor
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Divides); }
-          | factor
+          | tmpfactor
                { $$ = $1; }
           ;
 
-mterm     : mterm Multiplies factor
-               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Multiplies); }
-          | mterm Divides factor
-               { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Divides); }
-          | mfactor
-               { $$ = $1; }
+tmpfactor : factor
+			   { $$ = $1; }
+		  | Minus factor
+			   { $$ = Compiler.UnaryMinusOp($2); }
+		  | Negation tmpfactor
+			   { $$ = Compiler.NegationOp($2); }
           ;
 
 factor    : OpenPar exp ClosePar
@@ -157,19 +157,13 @@ factor    : OpenPar exp ClosePar
 		  | Ident OpenPar art ClosePar
 			   { $$ = Compiler.Function($1.val, $3); }
           | IntNumber
-               { $$.val = $1.val.TrimStart('0'); $$.type = 'i'; }
+               { $$.val = $1.val.TrimStart('0') != "" ? $1.val.TrimStart('0') : "0" ; $$.type = 'i'; }
 		  | RealNumber
                { $$.val = $1.val.TrimStart('0'); $$.type = 'r'; }
 		  | Boolean
                { $$.val = $1.val; $$.type = 'b'; }
           | Ident
 			   { $$ = Compiler.GetVariable($1.val); }
-          ;
-
-mfactor   : factor
-			   { $$ = $1; }
-		  | Minus factor
-			   { $$ = Compiler.UnaryMinusOp($2); }
           ;
 
 %%

@@ -258,6 +258,21 @@ public class Compiler
 
         return res;
     }
+
+    public static SemanticValue NegationOp(SemanticValue value)
+    {
+        if (value.error != null)
+            return value;
+        if (value.type != 'b')
+            return new SemanticValue { error = "  int / real not allowed in negation ops", exit = true };
+
+        bool tmp = bool.Parse(value.val);
+        SemanticValue res = new SemanticValue();
+        res.type = 'b';
+        res.val = (!tmp).ToString();
+
+        return res;
+    }
 }
 
 public struct SemanticValue

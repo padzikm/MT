@@ -6,9 +6,9 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  PADZIKM
-//  DateTime: 2014-11-29 15:08:16
+//  DateTime: 2014-11-29 16:12:19
 //  UserName: Michal
-//  GPLEX input file <..\..\scanner.lex - 2014-11-29 11:46:06>
+//  GPLEX input file <..\..\scanner.lex - 2014-11-29 15:27:22>
 //  GPLEX frame file <embedded resource>
 //
 //  Option settings: parser, minimize
@@ -795,7 +795,6 @@ return (int)Tokens.Eof;
                 return (int)Tokens.EOF;
             break;
         case 1:
-        case 5:
         case 6:
         case 18:
         case 27:
@@ -809,6 +808,9 @@ return (int)Tokens.Endl;
             break;
         case 4:
 { }
+            break;
+        case 5:
+return (int)Tokens.Negation;
             break;
         case 7:
 return (int)Tokens.OpenPar;
