@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Configuration;
 using GardensPoint;
 
 public class Compiler
@@ -134,8 +135,7 @@ public class Compiler
                     return new SemanticValue { error = "  divide by zero" };
                 break;
             default:
-                Console.WriteLine("  internal error");
-                break;
+                return new SemanticValue { error = "  internal error" };
         }
 
         if (res.type == 'i')
@@ -143,6 +143,67 @@ public class Compiler
         else
             res.val = result.ToString(CultureInfo.InvariantCulture);
 
+        return res;
+    }
+
+    public static SemanticValue RelationalOp(SemanticValue left, SemanticValue right, Tokens t)
+    {
+        if (right.error != null)
+            return right;
+        if (left.error != null)
+            return left;
+        SemanticValue res = new SemanticValue();
+
+        if (t == Tokens.Equal || t == Tokens.Diff)
+        {
+            if (left.type == 'b' && right.type == 'b')
+            {
+                bool l = bool.Parse(left.val);
+                bool r = bool.Parse(right.val);
+                bool result = t == Tokens.Equal ? l == r : l != r;
+                res.val = result.ToString();
+            }
+            else if (left.type != 'b' && right.type != 'b')
+            {
+                double l = double.Parse(left.val, CultureInfo.InvariantCulture);
+                double r = double.Parse(right.val, CultureInfo.InvariantCulture);
+                bool result = t == Tokens.Equal ? l == r : l != r;
+                res.val = result.ToString();
+            }
+            else
+                return new SemanticValue { error = "  mixed bool and real / int not allowed in equals and diff ops" };
+        }
+        else
+        {
+            if (left.type == 'b' || right.type == 'b')
+                return new SemanticValue { error = "  bool not allowed in relational (except equals and diff) ops" };
+            
+            double l = double.Parse(left.val, CultureInfo.InvariantCulture);
+            double r = double.Parse(right.val, CultureInfo.InvariantCulture);
+            bool result = false;
+
+            switch (t)
+            {
+                case Tokens.Gt:
+                    result = l > r;
+                    break;
+                case Tokens.Lt:
+                    result = l < r;
+                    break;
+                case Tokens.Gte:
+                    result = l >= r;
+                    break;
+                case Tokens.Lte:
+                    result = l <= r;
+                    break;
+                default:
+                    return new SemanticValue {error = "  internal error"};
+            }
+
+            res.val = result.ToString();
+        }
+        
+        res.type = 'b';
         return res;
     }
 }
