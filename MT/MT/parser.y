@@ -16,10 +16,11 @@ line      : Print exp Endl
             {
 				if($2.error == null)
 				{
-					Console.Write("  Result:  {0}\n> ", $2.val);
+					Compiler.Print($2);
 				}
 				else
 				{
+					++Compiler.errors;
 					if($2.exit)
 					{
 						Console.Write($2.error+"\n");
@@ -40,6 +41,7 @@ line      : Print exp Endl
 				}
 				catch(ErrorException e)
 				{
+					++Compiler.errors;
 					Console.Write(e.Message+"\n");
 					Console.WriteLine("  Aborting");
 					YYABORT;
@@ -55,6 +57,7 @@ line      : Print exp Endl
 					}
 					else
 					{
+						++Compiler.errors;
 						if($3.exit)
 						{
 							Console.Write($3.error+"\n");
@@ -69,6 +72,7 @@ line      : Print exp Endl
                }
                catch ( ErrorException e)
                {
+					++Compiler.errors;
                    Console.Write(e.Message+"\n");
 				   Console.WriteLine("  Aborting");
 				   YYABORT;
@@ -88,25 +92,27 @@ line      : Print exp Endl
             {
                Console.Write("  syntax error\n ");
 			   Console.Write("  Aborting\n ");
+			   ++Compiler.errors;
                YYABORT;
             }
 		  | error Eof
             {
                Console.Write("  syntax error\n> ");
+			   ++Compiler.errors;
                yyerrok();
                YYACCEPT;
             }
           | Eof
             {
-               Console.WriteLine("  unexpected Eof, exited");
+               //Console.WriteLine("  unexpected Eof, exited");
                YYACCEPT;
             }
           ;
 
 exp		  : exp And rel
-				{ $$ = Compiler.BooleanOp($1,$3,Tokens.And); }
+				{ $$ = Compiler.LogicalOp($1,$3,Tokens.And); }
 		  | exp Or rel
-				{ $$ = Compiler.BooleanOp($1,$3,Tokens.Or); }
+				{ $$ = Compiler.LogicalOp($1,$3,Tokens.Or); }
 		  | rel
 				{ $$ = $1; }
 		  ;
@@ -156,11 +162,11 @@ factor    : OpenPar exp ClosePar
 		  | Ident OpenPar art ClosePar
 			   { $$ = Compiler.Function($1.val, $3); }
           | IntNumber
-               { $$.val = $1.val.TrimStart('0') != "" ? $1.val.TrimStart('0') : "0" ; $$.type = 'i'; }
+               { $$ = Compiler.Create($1.val, 'i'); }
 		  | RealNumber
-               { $$.val = $1.val.TrimStart('0'); $$.type = 'r'; }
+               { $$ = Compiler.Create($1.val, 'r'); }
 		  | Boolean
-               { $$.val = $1.val; $$.type = 'b'; }
+               { $$ = Compiler.Create($1.val, 'b'); }
           | Ident
 			   { $$ = Compiler.GetVariable($1.val); }
           ;
