@@ -37,7 +37,6 @@ line      : Print exp Endl
 				try
 				{
 					Compiler.Declare($1.type, $2.val);
-					Console.Write("  OK\n> ");
 				}
 				catch(ErrorException e)
 				{
@@ -53,7 +52,6 @@ line      : Print exp Endl
 					if($3.error == null)
 					{
 						Compiler.Mem($1.val, $3);
-						Console.Write("  OK\n> ");
 					}
 					else
 					{
@@ -88,8 +86,9 @@ line      : Print exp Endl
             }
           | error Endl
             {
-               Console.Write("  syntax error\n> ");
-               yyerrok();
+               Console.Write("  syntax error\n ");
+			   Console.Write("  Aborting\n ");
+               YYABORT;
             }
 		  | error Eof
             {

@@ -36,10 +36,10 @@ public class Compiler
         if (!_identificators.ContainsKey(id))
             throw new ErrorException(string.Format("  variable {0} not declared", id));
 
-        if (_identificators[id].Item1 != value.type)
+        if (_identificators[id].Item1 != value.type && !(_identificators[id].Item1 == 'r' && value.type == 'i'))
             throw new ErrorException("  types doesn't match");
 
-        _identificators[id] = new Tuple<char, string>(value.type, value.val);
+        _identificators[id] = new Tuple<char, string>(_identificators[id].Item1, value.val);
     }
 
     public static SemanticValue GetVariable(string id)
