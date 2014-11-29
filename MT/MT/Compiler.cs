@@ -206,6 +206,38 @@ public class Compiler
         res.type = 'b';
         return res;
     }
+
+    public static SemanticValue BooleanOp(SemanticValue left, SemanticValue right, Tokens t)
+    {
+        if (right.error != null)
+            return right;
+        if (left.error != null)
+            return left;
+        if (left.type != 'b' || right.type != 'b')
+            return new SemanticValue { error = "  int / real not allowed in boolean ops" };
+
+        SemanticValue res = new SemanticValue();
+        bool l = bool.Parse(left.val);
+        bool r = bool.Parse(right.val);
+        bool result = false;
+
+        switch (t)
+        {
+            case Tokens.And:
+                result = l && r;
+                break;
+            case Tokens.Or:
+                result = l || r;
+                break;
+            default:
+                return new SemanticValue { error = "  internal error" };
+        }
+
+        res.type = 'b';
+        res.val = result.ToString();
+
+        return res;
+    }
 }
 
 public struct SemanticValue

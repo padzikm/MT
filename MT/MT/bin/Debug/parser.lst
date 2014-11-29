@@ -1,10 +1,10 @@
 
 // ==========================================================================
-//  GPPG error listing for yacc source file <..\..\parser.y - 2014-11-29 11:09:07>
+//  GPPG error listing for yacc source file <..\..\parser.y - 2014-11-29 11:50:09>
 // ==========================================================================
 //  Version:  1.5.2
 //  Machine:  PADZIKM
-//  DateTime: 2014-11-29 11:09:19
+//  DateTime: 2014-11-29 11:58:55
 //  UserName: Michal
 // ==========================================================================
 
@@ -15,15 +15,9 @@
 
 %token Print Exit Endl Eof Error
 %token Ident IntNumber RealNumber Boolean Type
-%token Assign Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
+%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
 
 %%
-// Error: NonTerminal symbol "Equals" has no productions
-// Warning: Terminating Equals fixes the following size-1 NonTerminal set
-   // {Equals}
-// Error: There are 1 non-terminating NonTerminal Symbols
-   //  {Equals}
-// ----------------------------------------------------------------------
 
 start     : start line { }
           | line { }
@@ -106,18 +100,36 @@ line      : Print exp Endl
             }
           ;
 
-exp		  : art Equals art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Equal); }
+exp		  : exp && rel
+//----------^^^
+// Error: This character is invalid in this context
+// Error: This character is invalid in this context
+// ------------------------------------------------
+				{ $$ = Compiler.BooleanOp($1,$3,Tokens.And); }
+//-----------------------------^^^
+// Error: Semantic action index is out of bounds
+// ---------------------------------------------
+		  | exp || rel
+				{ $$ = Compiler.BooleanOp($1,$3,Tokens.Or); }
+//-----------------------------^^^
+// Error: Semantic action index is out of bounds
+// ---------------------------------------------
+		  | rel
+				{ $$ = $1; }
+		  ;
+
+rel		  : art Equal art
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Equal); }
 		  | art Diff art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Diff); }
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Diff); }
 		  | art Gt art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Gt); }
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Gt); }
 		  | art Lt art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Lt); }
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Lt); }
 		  | art Gte art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Gte); }
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Gte); }
 		  | art Lte art
-				{ $$ = Compiler.RealtionalOp($1,$3,Tokens.Lte); }
+				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Lte); }
 		  | art
 				{ $$ = $1; }
 		  ;

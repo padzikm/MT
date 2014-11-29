@@ -18,6 +18,8 @@ PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 {Type}				{ yylval.type=yytext[0]; return (int)Tokens.Type; }
 {Ident}				{ yylval.val=yytext; return (int)Tokens.Ident; }
 "="					{ return (int)Tokens.Assign; }
+"&&"				{ return (int)Tokens.And; }
+"||"				{ return (int)Tokens.Or; }
 "=="				{ return (int)Tokens.Equal; }
 "!="				{ return (int)Tokens.Diff; }
 ">"					{ return (int)Tokens.Gt; }

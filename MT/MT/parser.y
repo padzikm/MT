@@ -4,7 +4,7 @@
 
 %token Print Exit Endl Eof Error
 %token Ident IntNumber RealNumber Boolean Type
-%token Assign Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
+%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
 
 %%
 
@@ -89,7 +89,15 @@ line      : Print exp Endl
             }
           ;
 
-exp		  : art Equal art
+exp		  : exp And rel
+				{ $$ = Compiler.BooleanOp($1,$3,Tokens.And); }
+		  | exp Or rel
+				{ $$ = Compiler.BooleanOp($1,$3,Tokens.Or); }
+		  | rel
+				{ $$ = $1; }
+		  ;
+
+rel		  : art Equal art
 				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Equal); }
 		  | art Diff art
 				{ $$ = Compiler.RelationalOp($1,$3,Tokens.Diff); }
