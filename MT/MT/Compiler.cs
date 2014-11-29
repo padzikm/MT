@@ -45,9 +45,9 @@ public class Compiler
     public static SemanticValue GetVariable(string id)
     {
         if (!_identificators.ContainsKey(id))
-            return new SemanticValue{ error = string.Format("  variable {0} not declared", id) };
+            return new SemanticValue{ error = string.Format("  variable {0} not declared", id), exit = true };
         if (_identificators[id].Item2 == null)
-            return new SemanticValue{ error = string.Format("  variable {0} not initialized", id) };
+            return new SemanticValue{ error = string.Format("  variable {0} not initialized", id), exit = true};
 
         return new SemanticValue { type = _identificators[id].Item1, val = _identificators[id].Item2 };
     }
@@ -57,7 +57,7 @@ public class Compiler
         if (exp.error != null)
             return exp;
         if (exp.type == 'b')
-            return new SemanticValue {error = "  bool not allowed in functions"};
+            return new SemanticValue {error = "  bool not allowed in functions", exit = true};
 
         SemanticValue res = new SemanticValue();
         double str;
@@ -78,13 +78,17 @@ public class Compiler
                 str = 1 / Math.Tan(val);
                 break;
             case "sqrt":
+                if(val < 0)
+                    return new SemanticValue { error = "  square from negative number" };
                 str = Math.Sqrt(val);
                 break;
             case "lg2":
+                if (val <= 0)
+                    return new SemanticValue { error = "  log from non positive number" };
                 str = Math.Log(val,2);
                 break;
             default:
-                return new SemanticValue { error = "  function not recognized" };
+                return new SemanticValue { error = "  function not recognized", exit = true };
         }
 
         res.type = 'r';
@@ -100,7 +104,7 @@ public class Compiler
         if (left.error != null)
             return left;
         if (left.type == 'b' || right.type == 'b')
-            return new SemanticValue { error = "  bool not allowed in arithmetical ops" };
+            return new SemanticValue { error = "  bool not allowed in arithmetical ops", exit = true };
 
         SemanticValue res = new SemanticValue();
         double l = double.Parse(left.val, CultureInfo.InvariantCulture);
@@ -127,7 +131,7 @@ public class Compiler
                     return new SemanticValue { error = "  divide by zero" };
                 break;
             default:
-                return new SemanticValue { error = "  internal error" };
+                return new SemanticValue { error = "  internal error", exit = true };
         }
 
         if (res.type == 'i')
@@ -163,12 +167,12 @@ public class Compiler
                 res.val = result.ToString();
             }
             else
-                return new SemanticValue { error = "  mixed bool and real / int not allowed in equals and diff ops" };
+                return new SemanticValue { error = "  mixed bool and real / int not allowed in equals and diff ops", exit = true };
         }
         else
         {
             if (left.type == 'b' || right.type == 'b')
-                return new SemanticValue { error = "  bool not allowed in relational (except equals and diff) ops" };
+                return new SemanticValue { error = "  bool not allowed in relational (except equals and diff) ops", exit = true };
             
             double l = double.Parse(left.val, CultureInfo.InvariantCulture);
             double r = double.Parse(right.val, CultureInfo.InvariantCulture);
@@ -189,7 +193,7 @@ public class Compiler
                     result = l <= r;
                     break;
                 default:
-                    return new SemanticValue {error = "  internal error"};
+                    return new SemanticValue {error = "  internal error", exit = true};
             }
 
             res.val = result.ToString();
@@ -206,7 +210,7 @@ public class Compiler
         if (left.error != null)
             return left;
         if (left.type != 'b' || right.type != 'b')
-            return new SemanticValue { error = "  int / real not allowed in boolean ops" };
+            return new SemanticValue { error = "  int / real not allowed in boolean ops", exit = true };
 
         SemanticValue res = new SemanticValue();
         bool l = bool.Parse(left.val);
@@ -222,7 +226,7 @@ public class Compiler
                 result = l || r;
                 break;
             default:
-                return new SemanticValue { error = "  internal error" };
+                return new SemanticValue { error = "  internal error", exit = true };
         }
 
         res.type = 'b';
@@ -231,12 +235,12 @@ public class Compiler
         return res;
     }
 
-    public static SemanticValue NegationOp(SemanticValue value)
+    public static SemanticValue UnaryMinusOp(SemanticValue value)
     {
         if (value.error != null)
             return value;
         if (value.type == 'b')
-            return new SemanticValue {error = "  bool not allowed in negation ops"};
+            return new SemanticValue {error = "  bool not allowed in negation ops", exit = true};
 
         SemanticValue res = new SemanticValue();
         res.type = value.type;
@@ -261,6 +265,7 @@ public struct SemanticValue
     public char type;
     public string val;
     public string error;
+    public bool exit;
 }
 
 class ErrorException : ApplicationException

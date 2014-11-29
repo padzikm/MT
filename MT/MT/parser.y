@@ -14,21 +14,23 @@ start     : start line { }
 
 line      : Print exp Endl
             {
-               try
-               {
-					if($2.error == null)
+				if($2.error == null)
+				{
+					Console.Write("  Result:  {0}\n> ", $2.val);
+				}
+				else
+				{
+					if($2.exit)
 					{
-						Console.Write("  Result:  {0}\n> ", $2.val);
+						Console.Write($2.error+"\n");
+						Console.WriteLine("  Aborting");
+						YYABORT;
 					}
 					else
 					{
 						Console.Write($2.error+"\n> ");
 					}
-               }
-               catch ( ErrorException e)
-               {
-                   Console.Write(e.Message+"\n> ");
-               }
+				}
             }
 		  | Type Ident Endl
 			{
@@ -39,7 +41,9 @@ line      : Print exp Endl
 				}
 				catch(ErrorException e)
 				{
-					Console.Write(e.Message+"\n> ");
+					Console.Write(e.Message+"\n");
+					Console.WriteLine("  Aborting");
+					YYABORT;
 				}
 			}
           | Ident Assign exp Endl
@@ -53,12 +57,23 @@ line      : Print exp Endl
 					}
 					else
 					{
-						Console.Write($3.error+"\n> ");
+						if($3.exit)
+						{
+							Console.Write($3.error+"\n");
+							Console.WriteLine("  Aborting");
+							YYABORT;
+						}
+						else
+						{
+							Console.Write($3.error+"\n> ");
+						}
 					}
                }
                catch ( ErrorException e)
                {
-                   Console.Write(e.Message+"\n> ");
+                   Console.Write(e.Message+"\n");
+				   Console.WriteLine("  Aborting");
+				   YYABORT;
                }
             }
           | Exit Endl
@@ -154,7 +169,7 @@ factor    : OpenPar exp ClosePar
 mfactor   : factor
 			   { $$ = $1; }
 		  | Minus factor
-			   { $$ = Compiler.NegationOp($2); }
+			   { $$ = Compiler.UnaryMinusOp($2); }
           ;
 
 %%
