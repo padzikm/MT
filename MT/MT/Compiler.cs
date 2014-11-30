@@ -110,7 +110,7 @@ public class Compiler
     {
         sw = new StreamWriter(file);
         sw.WriteLine(".assembly extern mscorlib { }");
-        sw.WriteLine(".assembly calculator { }");
+        sw.WriteLine(".assembly padzikm { }");
         sw.WriteLine(".method static void main()");
         sw.WriteLine("{");
         sw.WriteLine(".entrypoint");
@@ -466,11 +466,15 @@ public class Compiler
                     result = l < r;
                     break;
                 case Tokens.Gte:
-                    EmitCode("cgt");
+                    EmitCode("clt");
+                    EmitCode("ldc.i4 {0}", 0);
+                    EmitCode("ceq");
                     result = l >= r;
                     break;
                 case Tokens.Lte:
-                    EmitCode("clt");
+                    EmitCode("cgt");
+                    EmitCode("ldc.i4 {0}", 0);
+                    EmitCode("ceq");
                     result = l <= r;
                     break;
                 default:

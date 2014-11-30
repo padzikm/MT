@@ -1,5 +1,5 @@
 .assembly extern mscorlib { }
-.assembly calculator { }
+.assembly padzikm { }
 .method static void main()
 {
 .entrypoint
@@ -102,10 +102,15 @@ box [mscorlib]System.Double
 ldstr "r"
 call void [mscorlib]System.Console::WriteLine(string,object,object)
 
-// linia  11 :  print Pi/4
+// linia  11 :  print Pi/(4*-E)
 ldloc Pi
 ldc.i4 4
+ldloc E
+neg
+stloc _r
 conv.r8
+ldloc _r
+mul
 div
 stloc _r
 ldstr "  Result: {0}{1}"
@@ -144,7 +149,9 @@ ldloc x
 stloc _r
 conv.r8
 ldloc _r
-clt
+cgt
+ldc.i4 0
+ceq
 stloc bb
 
 // linia  20 :  print aa
@@ -212,6 +219,50 @@ ldloc _i
 box [mscorlib]System.Int32
 ldstr "i"
 call void [mscorlib]System.Console::WriteLine(string,object,object)
+
+// linia  28 :  print 4 <= 3.99
+ldc.i4 4
+ldc.r8 3.99
+stloc _r
+conv.r8
+ldloc _r
+cgt
+ldc.i4 0
+ceq
+stloc _i
+ldstr "  Result: {0}"
+ldloc _i
+box [mscorlib]System.Boolean
+call void [mscorlib]System.Console::WriteLine(string,object)
+
+// linia  30 :  print 0.1 >= 0.10
+ldc.r8 0.1
+ldc.r8 0.1
+clt
+ldc.i4 0
+ceq
+stloc _i
+ldstr "  Result: {0}"
+ldloc _i
+box [mscorlib]System.Boolean
+call void [mscorlib]System.Console::WriteLine(string,object)
+
+// linia  31 :  print 10/100.0>=0.1
+ldc.i4 10
+ldc.r8 100
+stloc _r
+conv.r8
+ldloc _r
+div
+ldc.r8 0.1
+clt
+ldc.i4 0
+ceq
+stloc _i
+ldstr "  Result: {0}"
+ldloc _i
+box [mscorlib]System.Boolean
+call void [mscorlib]System.Console::WriteLine(string,object)
 
 leave EndMain
 }

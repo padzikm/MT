@@ -8,7 +8,7 @@ c=-2
 d=sqrt(b*b-4*a*c)
 print (-b+d)/(2*a)
 print (-b-d)/(2*a)
-print Pi/4
+print Pi/(4*-E)
 bool aa
 aa=false
 int i
@@ -25,6 +25,10 @@ y=0
 bb= i>10*x && aa==(x/y>-2)
 print !bb
 print 0090
+print 4 <= 3.99
+
+print 0.1 >= 0.10
+print 10/100.0>=0.1
 exit
 
 --------------

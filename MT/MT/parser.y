@@ -74,6 +74,7 @@ line      : Print { Compiler.EmitCode("// linia {0,3} :  "+Compiler.sourceCode[l
                yyerrok();
                YYACCEPT;
             }
+		  | Endl { }
           | Eof
             {
                YYACCEPT;
