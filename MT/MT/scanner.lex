@@ -6,7 +6,6 @@ IntNumber   [0-9]+
 RealNumber  [0-9]+\.[0-9]+
 Boolean		"true"|"false"
 Ident       "Pi"|"E"|[a-z][a-z0-9]*
-PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 
 %%
 
@@ -37,5 +36,4 @@ PrintErr    "print"("@"|"$"|[a-z0-9])[a-z0-9]*
 <<EOF>>				{ return (int)Tokens.Eof; }
 " "					{ }
 "\t"				{ }
-{PrintErr}			{ return (int)Tokens.Error; }
 .					{ return (int)Tokens.Error; }

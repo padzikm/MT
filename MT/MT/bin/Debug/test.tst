@@ -12,7 +12,7 @@ print Pi/4
 bool aa
 aa=false
 int i
-i=554678909872365
+i=5
 real x
 x=7.5
 bool bb

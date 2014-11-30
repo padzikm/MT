@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Net.Configuration;
 using GardensPoint;
 
 public class Compiler
@@ -16,9 +14,9 @@ public class Compiler
 
     public static List<string> sourceCode;
 
-    public static bool genCode = true;
+    public static bool genCode;
 
-    public static int errors = 0;
+    public static Dictionary<int, string> errors;
 
     static Compiler()
     {
@@ -27,6 +25,10 @@ public class Compiler
             { "Pi", new Tuple<char, string>('r', Math.PI.ToString(CultureInfo.InvariantCulture)) },
             { "E", new Tuple<char, string>('r', Math.E.ToString(CultureInfo.InvariantCulture)) }
         };
+
+        genCode = true;
+
+        errors = new Dictionary<int, string>();
     }
 
     public static int Main(string[] args)
@@ -36,7 +38,7 @@ public class Compiler
             string file;
             FileStream source;
 
-            Console.WriteLine("\nCIL Code Generator");
+            Console.WriteLine("\n  CIL Code Generator");
 
             if (args.Length >= 1)
                 file = args[0];
@@ -69,19 +71,27 @@ public class Compiler
             parser.Parse();
             source.Close();
 
-            if (errors == 0)
+            if (errors.Count == 0)
             {
                 GenCode(file + ".il");
-                Console.WriteLine("  compilation successful\n");
+                Console.WriteLine("  Compilation successful");
             }
             else
-                Console.WriteLine("\n  {0} errors detected\n", errors);
+            {
+                Console.WriteLine("  Compilation aborted");
+                Console.WriteLine("\n  {0} errors detected", errors.Count);
 
-            return errors == 0 ? 0 : 2;
+                foreach (var error in errors)
+                    Console.WriteLine("\nline: {0} {1}", error.Key, error.Value);
+            }
+
+            return errors.Count == 0 ? 0 : 2;
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine("  Compilation aborted\n");
+            Console.WriteLine("  Internal error: {0}\n", ex.Message);
+
             return 2;
         }
     }
@@ -122,12 +132,7 @@ public class Compiler
         sw.WriteLine();
 
         for (int i = 0; i < code.Count; ++i)
-        {
-            //sw.WriteLine("// linia {0,3} :  " + source[i], i + 1);
-            //code[i].GenCode();
-            sw.Write(code[i]);
-            sw.WriteLine();
-        }
+            sw.WriteLine(code[i]);
 
         sw.WriteLine("leave EndMain");
         sw.WriteLine("}");
@@ -171,11 +176,10 @@ public class Compiler
             EmitCode("call void [mscorlib]System.Console::WriteLine(string,object)");
         }
 
-
-        if(value.type == 'b')
-            Console.WriteLine(value.val);
-        else
-            Console.WriteLine(string.Format("{0}{1}", value.val, value.type));
+        //if (value.type == 'b')
+        //    Console.WriteLine(value.val);
+        //else
+        //    Console.WriteLine("{0}{1}", value.val, value.type);
     }
 
     public static void Declare(char type, string id)
@@ -224,13 +228,25 @@ public class Compiler
         }
         if (type == 'i')
         {
-            res.val = int.Parse(val).ToString(CultureInfo.InvariantCulture);
-            EmitCode("ldc.i4 {0}", res.val);
+            int tmp;
+            if (int.TryParse(val, out tmp))
+            {
+                res.val = tmp.ToString(CultureInfo.InvariantCulture);
+                EmitCode("ldc.i4 {0}", res.val);
+            }
+            else
+                return new SemanticValue {error = string.Format("  value {0} not fitted in int", val)};
         }
         if (type == 'r')
         {
-            res.val = double.Parse(val, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-            EmitCode("ldc.r8 {0}", res.val);
+            double tmp;
+            if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out tmp))
+            {
+                res.val = tmp.ToString(CultureInfo.InvariantCulture);
+                EmitCode("ldc.r8 {0}", res.val);
+            }
+            else
+                return new SemanticValue { error = string.Format("  value {0} not fitted in double", val) };
         }
 
         return res;
@@ -241,9 +257,9 @@ public class Compiler
         if (!genCode)
             return new SemanticValue();
         if (!_identificators.ContainsKey(id))
-            return new SemanticValue{ error = string.Format("  variable {0} not declared", id), exit = true };
+            return new SemanticValue{ error = string.Format("  variable {0} not declared", id) };
         if (_identificators[id].Item2 == null)
-            return new SemanticValue{ error = string.Format("  variable {0} not initialized", id), exit = true};
+            return new SemanticValue{ error = string.Format("  variable {0} not initialized", id)};
 
         EmitCode("ldloc {0}", id);
 
@@ -257,7 +273,7 @@ public class Compiler
         if (exp.error != null)
             return exp;
         if (exp.type == 'b')
-            return new SemanticValue {error = "  bool not allowed in functions", exit = true};
+            return new SemanticValue {error = "  bool not allowed in functions"};
 
         SemanticValue res = new SemanticValue();
         double str;
@@ -301,7 +317,7 @@ public class Compiler
                 str = Math.Log(val,2);
                 break;
             default:
-                return new SemanticValue { error = "  function not recognized", exit = true };
+                return new SemanticValue { error = "  function not recognized" };
         }
 
         res.type = 'r';
@@ -319,7 +335,7 @@ public class Compiler
         if (left.error != null)
             return left;
         if (left.type == 'b' || right.type == 'b')
-            return new SemanticValue { error = "  bool not allowed in arithmetical ops", exit = true };
+            return new SemanticValue { error = "  bool not allowed in arithmetical ops" };
 
         SemanticValue res = new SemanticValue();
         double l = double.Parse(left.val, CultureInfo.InvariantCulture);
@@ -361,7 +377,7 @@ public class Compiler
                     return new SemanticValue {error = "  divide by zero"};
                 break;
             default:
-                return new SemanticValue { error = "  internal error", exit = true };
+                return new SemanticValue { error = "  internal error" };
         }
 
         if (res.type == 'i')
@@ -419,12 +435,12 @@ public class Compiler
                 res.val = result.ToString();
             }
             else
-                return new SemanticValue { error = "  mixed bool and real / int not allowed in equals and diff ops", exit = true };
+                return new SemanticValue { error = "  mixed bool and real / int not allowed in equals and diff ops" };
         }
         else
         {
             if (left.type == 'b' || right.type == 'b')
-                return new SemanticValue { error = "  bool not allowed in relational (except equals and diff) ops", exit = true };
+                return new SemanticValue { error = "  bool not allowed in relational (except equals and diff) ops" };
             
             double l = double.Parse(left.val, CultureInfo.InvariantCulture);
             double r = double.Parse(right.val, CultureInfo.InvariantCulture);
@@ -458,7 +474,7 @@ public class Compiler
                     result = l <= r;
                     break;
                 default:
-                    return new SemanticValue {error = "  internal error", exit = true};
+                    return new SemanticValue {error = "  internal error"};
             }
 
             res.val = result.ToString();
@@ -477,7 +493,7 @@ public class Compiler
         if (left.error != null)
             return left;
         if (left.type != 'b' || right.type != 'b')
-            return new SemanticValue { error = "  int / real not allowed in boolean ops", exit = true };
+            return new SemanticValue { error = "  int / real not allowed in boolean ops" };
 
         SemanticValue res = new SemanticValue();
         bool l = bool.Parse(left.val);
@@ -499,7 +515,7 @@ public class Compiler
                 result = l || r;
                 break;
             default:
-                return new SemanticValue { error = "  internal error", exit = true };
+                return new SemanticValue { error = "  internal error" };
         }
 
         res.type = 'b';
@@ -515,7 +531,7 @@ public class Compiler
         if (value.error != null)
             return value;
         if (value.type == 'b')
-            return new SemanticValue {error = "  bool not allowed in negation ops", exit = true};
+            return new SemanticValue {error = "  bool not allowed in negation ops"};
 
         SemanticValue res = new SemanticValue();
         res.type = value.type;
@@ -543,7 +559,7 @@ public class Compiler
         if (value.error != null)
             return value;
         if (value.type != 'b')
-            return new SemanticValue { error = "  int / real not allowed in negation ops", exit = true };
+            return new SemanticValue { error = "  int / real not allowed in negation ops"};
 
         EmitCode("ldc.i4 {0}", 0);
         EmitCode("ceq");
@@ -562,7 +578,6 @@ public struct SemanticValue
     public char type;
     public string val;
     public string error;
-    public bool exit;
 }
 
 class ErrorException : ApplicationException

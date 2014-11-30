@@ -21,17 +21,7 @@ line      : Print { Compiler.EmitCode("// linia {0,3} :  "+Compiler.sourceCode[l
 				}
 				else
 				{
-					++Compiler.errors;
-					if($3.exit)
-					{
-						Console.Write($3.error+"\n");
-						Console.WriteLine("  Aborting");
-						YYABORT;
-					}
-					else
-					{
-						Console.Write($3.error+"\n> ");
-					}
+					Compiler.errors[lineno] = $3.error;
 				}
             }
 		  | Type Ident Endl
@@ -44,10 +34,7 @@ line      : Print { Compiler.EmitCode("// linia {0,3} :  "+Compiler.sourceCode[l
 				}
 				catch(ErrorException e)
 				{
-					++Compiler.errors;
-					Console.Write(e.Message+"\n");
-					Console.WriteLine("  Aborting");
-					YYABORT;
+					Compiler.errors[lineno] = e.Message;
 				}
 			}
           | Ident Assign { Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); } exp Endl
@@ -61,54 +48,34 @@ line      : Print { Compiler.EmitCode("// linia {0,3} :  "+Compiler.sourceCode[l
 					}
 					else
 					{
-						++Compiler.errors;
-						if($4.exit)
-						{
-							Console.Write($4.error+"\n");
-							Console.WriteLine("  Aborting");
-							YYABORT;
-						}
-						else
-						{
-							Console.Write($4.error+"\n> ");
-						}
+						Compiler.errors[lineno] = $4.error;
 					}
                }
                catch ( ErrorException e)
                {
-					++Compiler.errors;
-                   Console.Write(e.Message+"\n");
-				   Console.WriteLine("  Aborting");
-				   YYABORT;
+					Compiler.errors[lineno] = e.Message;
                }
             }
           | Exit Endl
             {
-               Console.WriteLine("  OK, exited");
                YYACCEPT;
             }
 		  | Exit Eof
             {
-               Console.WriteLine("  OK, exited");
                YYACCEPT;
             }
           | error Endl
             {
-               Console.Write("  syntax error\n ");
-			   Console.Write("  Aborting\n ");
-			   ++Compiler.errors;
-               YYABORT;
+               Compiler.errors[lineno] = "  syntax error";
             }
 		  | error Eof
             {
-               Console.Write("  syntax error\n> ");
-			   ++Compiler.errors;
+			   Compiler.errors[lineno] = "  syntax error";
                yyerrok();
                YYACCEPT;
             }
           | Eof
             {
-               //Console.WriteLine("  unexpected Eof, exited");
                YYACCEPT;
             }
           ;
