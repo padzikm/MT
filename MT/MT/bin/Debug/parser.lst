@@ -1,10 +1,10 @@
 
 // ==========================================================================
-//  GPPG error listing for yacc source file <..\..\parser.y - 2014-11-29 11:50:09>
+//  GPPG error listing for yacc source file <..\..\parser.y - 2014-11-30 13:21:46>
 // ==========================================================================
 //  Version:  1.5.2
 //  Machine:  PADZIKM
-//  DateTime: 2014-11-29 11:58:55
+//  DateTime: 2014-11-30 13:22:02
 //  UserName: Michal
 // ==========================================================================
 
@@ -15,61 +15,80 @@
 
 %token Print Exit Endl Eof Error
 %token Ident IntNumber RealNumber Boolean Type
-%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides OpenPar ClosePar
+%token Assign And Or Equal Diff Gt Lt Gte Lte Plus Minus Multiplies Divides Negation OpenPar ClosePar
 
 %%
 
-start     : start line { }
-          | line { }
+start     : start line { ++lineno; }
+          | line { ++lineno; }
           ;
 
-line      : Print exp Endl
+line      : Print { Console.WriteLine("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); } exp Endl
             {
-               try
-               {
-					if($2.error == null)
+				if($3.error == null)
+				{
+					Compiler.Print($3);
+				}
+				else
+				{
+					++Compiler.errors;
+					if($3.exit)
 					{
-						Console.Write("  Result:  {0}\n> ", $2.val);
+						Console.Write($3.error+"\n");
+						Console.WriteLine("  Aborting");
+						YYABORT;
 					}
-					else if(!$2.errorPrinted)
+					else
 					{
-						Console.Write($2.error+"\n> ");
+						Console.Write($3.error+"\n> ");
 					}
-               }
-               catch ( ErrorException e)
-               {
-                   Console.Write(e.Message+"\n> ");
-               }
+				}
             }
 		  | Type Ident Endl
 			{
 				try
 				{
+					Console.WriteLine("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno);
+					Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno);
 					Compiler.Declare($1.type, $2.val);
-					Console.Write("  OK\n> ");
 				}
 				catch(ErrorException e)
 				{
-					Console.Write(e.Message+"\n> ");
+					++Compiler.errors;
+					Console.Write(e.Message+"\n");
+					Console.WriteLine("  Aborting");
+					YYABORT;
 				}
 			}
-          | Ident Assign exp Endl
+          | Ident Assign { Console.WriteLine("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); } exp Endl
             {
                try
                {
-					if($3.error == null)
+					if($4.error == null)
 					{
-						Compiler.Mem($1.val, $3);
-						Console.Write("  OK\n> ");
+						Compiler.Mem($1.val, $4);
 					}
-					else if(!$3.errorPrinted)
+					else
 					{
-						Console.Write($3.error+"\n> ");
+						++Compiler.errors;
+						if($4.exit)
+						{
+							Console.Write($4.error+"\n");
+							Console.WriteLine("  Aborting");
+							YYABORT;
+						}
+						else
+						{
+							Console.Write($4.error+"\n> ");
+						}
 					}
                }
                catch ( ErrorException e)
                {
-                   Console.Write(e.Message+"\n> ");
+					++Compiler.errors;
+                   Console.Write(e.Message+"\n");
+				   Console.WriteLine("  Aborting");
+				   YYABORT;
                }
             }
           | Exit Endl
@@ -84,36 +103,31 @@ line      : Print exp Endl
             }
           | error Endl
             {
-               Console.Write("  syntax error\n> ");
-               yyerrok();
+               Console.Write("  syntax error\n ");
+			   Console.Write("  Aborting\n ");
+			   ++Compiler.errors;
+               YYABORT;
             }
 		  | error Eof
             {
                Console.Write("  syntax error\n> ");
+			   ++Compiler.errors;
                yyerrok();
                YYACCEPT;
             }
           | Eof
             {
-               Console.WriteLine("  unexpected Eof, exited");
+               //Console.WriteLine("  unexpected Eof, exited");
                YYACCEPT;
             }
           ;
 
-exp		  : exp && rel
-//----------^^^
-// Error: This character is invalid in this context
-// Error: This character is invalid in this context
-// ------------------------------------------------
-				{ $$ = Compiler.BooleanOp($1,$3,Tokens.And); }
-//-----------------------------^^^
-// Error: Semantic action index is out of bounds
-// ---------------------------------------------
-		  | exp || rel
-				{ $$ = Compiler.BooleanOp($1,$3,Tokens.Or); }
-//-----------------------------^^^
-// Error: Semantic action index is out of bounds
-// ---------------------------------------------
+exp		  : exp { if($1.error == null && $1.val == "false"){ $$ = Compiler.Create("false", 'b'); }} And { if($$.val != null){ yyclearin(); } rel
+// Error: Position of unmatched brace
+// ----------------------------------
+				{ $$ = Compiler.LogicalOp($1,$4,Tokens.And); }
+		  | exp { if($1.error == null && $1.val == "true"){ $$ = Compiler.Create("true", 'b'); yyclearin(); }} Or rel
+				{ $$ = Compiler.LogicalOp($1,$4,Tokens.Or); }
 		  | rel
 				{ $$ = $1; }
 		  ;
@@ -142,50 +156,52 @@ art       : art Plus term
                { $$ = $1; }
           ;
 
-term      : term Multiplies factor
+term      : term Multiplies tmpfactor
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Multiplies); }
-          | term Divides factor
+          | term Divides tmpfactor
                { $$ = Compiler.AritmeticalOp($1,$3,Tokens.Divides); }
-          | factor
+          | tmpfactor
                { $$ = $1; }
+          ;
+
+tmpfactor : factor
+			   { $$ = $1; }
+		  | Minus factor
+			   { $$ = Compiler.UnaryMinusOp($2); }
+		  | Negation tmpfactor
+			   { $$ = Compiler.NegationOp($2); }
           ;
 
 factor    : OpenPar exp ClosePar
                { $$ = $2; }
 		  | Ident OpenPar art ClosePar
-			{
-				if($3.error == null)
-				{
-					$$ = Compiler.Function($1.val, $3);
-				}
-				else
-				{
-					$$ = $3;
-				}
-			}
+			   { $$ = Compiler.Function($1.val, $3); }
           | IntNumber
-               { $$.val = $1.val.TrimStart('0'); $$.type = 'i'; }
+               { $$ = Compiler.Create($1.val, 'i'); }
 		  | RealNumber
-               { $$.val = $1.val.TrimStart('0'); $$.type = 'r'; }
+               { $$ = Compiler.Create($1.val, 'r'); }
 		  | Boolean
-               { $$.val = $1.val; $$.type = 'b'; }
+               { $$ = Compiler.Create($1.val, 'b'); }
           | Ident
-            { 
-			   try
-			   {
-					$$.val = Compiler.GetValue($1.val);
-					$$.type = Compiler.GetType($1.val);
-			   }
-			   catch(ErrorException e)
-			   {
-					$$.error = e.Message;
-					$$.errorPrinted = true;
-					Console.Write(e.Message+"\n> ");
-			   }
-			}
+			   { $$ = Compiler.GetVariable($1.val); }
           ;
 
 %%
+// Error: Syntax error, unexpected %%, expecting codeEnd, or error
+// Error: Premature termination of Code Block
+// ---------------------------------------------------------------
 
-public Parser(Scanner scanner) : base(scanner) { }// ==========================================================================
+int lineno = 1;
+//--------^^^^
+// Error: This character is invalid in this context
+// Error: This character is invalid in this context
+// ------------------------------------------------
+
+public Parser(Scanner scanner) : base(scanner) { }//----------^^--------------^^------^^------^^
+// Error: This character is invalid in this context
+// Error: This character is invalid in this context
+// Error: This character is invalid in this context
+// Error: This character is invalid in this context
+// ------------------------------------------------
+// ==========================================================================
 

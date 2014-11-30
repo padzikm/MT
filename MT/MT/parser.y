@@ -8,28 +8,29 @@
 
 %%
 
-start     : start line { }
-          | line { }
+start     : start line { ++lineno; }
+          | line { ++lineno; }
           ;
 
-line      : Print exp Endl
+line      : Print { Compiler.EmitCode("// linia {0,3} :  "+Compiler.sourceCode[lineno-1],lineno); } exp Endl
             {
-				if($2.error == null)
+				if($3.error == null)
 				{
-					Compiler.Print($2);
+					Compiler.Print($3);
+					Compiler.EmitCode("");
 				}
 				else
 				{
 					++Compiler.errors;
-					if($2.exit)
+					if($3.exit)
 					{
-						Console.Write($2.error+"\n");
+						Console.Write($3.error+"\n");
 						Console.WriteLine("  Aborting");
 						YYABORT;
 					}
 					else
 					{
-						Console.Write($2.error+"\n> ");
+						Console.Write($3.error+"\n> ");
 					}
 				}
             }
@@ -37,7 +38,9 @@ line      : Print exp Endl
 			{
 				try
 				{
+					Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno);
 					Compiler.Declare($1.type, $2.val);
+					Compiler.EmitCode("");
 				}
 				catch(ErrorException e)
 				{
@@ -47,26 +50,27 @@ line      : Print exp Endl
 					YYABORT;
 				}
 			}
-          | Ident Assign exp Endl
+          | Ident Assign { Compiler.EmitCode("// linia {0,3} :  "+ Compiler.sourceCode[lineno-1],lineno); } exp Endl
             {
                try
                {
-					if($3.error == null)
+					if($4.error == null)
 					{
-						Compiler.Mem($1.val, $3);
+						Compiler.Mem($1.val, $4);
+						Compiler.EmitCode("");
 					}
 					else
 					{
 						++Compiler.errors;
-						if($3.exit)
+						if($4.exit)
 						{
-							Console.Write($3.error+"\n");
+							Console.Write($4.error+"\n");
 							Console.WriteLine("  Aborting");
 							YYABORT;
 						}
 						else
 						{
-							Console.Write($3.error+"\n> ");
+							Console.Write($4.error+"\n> ");
 						}
 					}
                }
@@ -109,10 +113,30 @@ line      : Print exp Endl
             }
           ;
 
-exp		  : exp And rel
-				{ $$ = Compiler.LogicalOp($1,$3,Tokens.And); }
-		  | exp Or rel
-				{ $$ = Compiler.LogicalOp($1,$3,Tokens.Or); }
+exp		  : exp { if($1.error == null && !bool.Parse($1.val)){ Compiler.genCode = false; }} And rel
+				{
+					if($1.error == null && !bool.Parse($1.val))
+					{
+						$$ = $1;
+						Compiler.genCode = true;
+					}
+					else
+					{
+						$$ = Compiler.LogicalOp($1,$4,Tokens.And); 
+					}
+				}
+		  | exp { if($1.error == null && bool.Parse($1.val)){ Compiler.genCode = false; }} Or rel
+				{
+					if($1.error == null && bool.Parse($1.val))
+					{
+						$$ = $1;
+						Compiler.genCode = true;
+					}
+					else
+					{
+						$$ = Compiler.LogicalOp($1,$4,Tokens.Or); 
+					}
+				}
 		  | rel
 				{ $$ = $1; }
 		  ;
@@ -172,5 +196,7 @@ factor    : OpenPar exp ClosePar
           ;
 
 %%
+
+int lineno = 1;
 
 public Parser(Scanner scanner) : base(scanner) { }

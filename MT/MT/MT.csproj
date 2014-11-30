@@ -55,6 +55,7 @@
     <None Include="App.config" />
     <None Include="parser.y" />
     <None Include="scanner.lex" />
+    <None Include="test.tst" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

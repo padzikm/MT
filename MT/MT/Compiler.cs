@@ -14,6 +14,10 @@ public class Compiler
 
     private static StreamWriter sw;
 
+    public static List<string> sourceCode;
+
+    public static bool genCode = true;
+
     public static int errors = 0;
 
     static Compiler()
@@ -27,50 +31,59 @@ public class Compiler
 
     public static int Main(string[] args)
     {
-        string file;
-        FileStream source;
-        
-        Console.WriteLine("\nCIL Code Generator");
-
-        if (args.Length >= 1)
-            file = args[0];
-        else
-        {
-            Console.Write("\nsource file:  ");
-            file = Console.ReadLine();
-        }
-
         try
         {
-            //var sr = new StreamReader(file);
-            //string str = sr.ReadToEnd();
-            //sr.Close();
-            //Compiler.source = new List<string>(str.Split(new string[] { "\r\n" }, StringSplitOptions.None));
-            source = new FileStream(file, FileMode.Open);
+            string file;
+            FileStream source;
+
+            Console.WriteLine("\nCIL Code Generator");
+
+            if (args.Length >= 1)
+                file = args[0];
+            else
+            {
+                Console.Write("\nsource file:  ");
+                file = Console.ReadLine();
+            }
+
+            try
+            {
+                var sr = new StreamReader(file);
+                string str = sr.ReadToEnd();
+                sr.Close();
+                sourceCode = new List<string>(str.Split(new string[] {"\r\n"}, StringSplitOptions.None));
+                code = new List<string>();
+                source = new FileStream(file, FileMode.Open);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("\n" + e.Message);
+                return 1;
+            }
+
+            Scanner scanner = new Scanner(source);
+            Parser parser = new Parser(scanner);
+
+            Console.WriteLine();
+
+            parser.Parse();
+            source.Close();
+
+            if (errors == 0)
+            {
+                GenCode(file + ".il");
+                Console.WriteLine("  compilation successful\n");
+            }
+            else
+                Console.WriteLine("\n  {0} errors detected\n", errors);
+
+            return errors == 0 ? 0 : 2;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Console.WriteLine("\n" + e.Message);
-            return 1;
+            Console.WriteLine(ex.Message);
+            return 2;
         }
-
-        Scanner scanner = new Scanner(source);
-        Parser parser = new Parser(scanner);
-        
-        Console.WriteLine();
-        
-        parser.Parse();
-        source.Close();
-
-        if (errors == 0)
-        {
-            GenCode(file + ".il");
-            Console.WriteLine("  compilation successful\n");
-        }
-        else
-            Console.WriteLine("\n  {0} errors detected\n", errors);
-
-        return errors == 0 ? 0 : 2;
     }
 
     public static void EmitCode(string instr)
@@ -98,16 +111,14 @@ public class Compiler
         sw.WriteLine("// initializing Pi and E");
         sw.WriteLine(".locals init ( float64 {0} )", "Pi");
         sw.WriteLine(".locals init ( float64 {0} )", "E");
-        sw.WriteLine("ldc.r8 {0}", Math.PI);
+        sw.WriteLine(string.Format(CultureInfo.InvariantCulture, "ldc.r8 {0}", Math.PI));
         sw.WriteLine("stloc {0}", "Pi");
-        sw.WriteLine("ldc.r8 {0}", Math.E);
+        sw.WriteLine(string.Format(CultureInfo.InvariantCulture, "ldc.r8 {0}", Math.E));
         sw.WriteLine("stloc {0}", "E");
         sw.WriteLine();
         sw.WriteLine("// initializing temporary variables");
         sw.WriteLine(".locals init ( int32 {0} )", "_i");
-        sw.WriteLine(".locals init ( int32 {0} )", "_ii");
         sw.WriteLine(".locals init ( float64 {0} )", "_r");
-        sw.WriteLine(".locals init ( float64 {0} )", "_rr");
         sw.WriteLine();
 
         for (int i = 0; i < code.Count; ++i)
@@ -133,22 +144,33 @@ public class Compiler
 
     public static void Print(SemanticValue value)
     {
-        EmitCode("ldstr \"  Result: {0}{1}\"");
-
         if (value.type == 'i')
         {
+            EmitCode("stloc {0}", "_i");
+            EmitCode("ldstr \"  Result: {0}{1}\"");
+            EmitCode("ldloc {0}", "_i");
             EmitCode("box [mscorlib]System.{0}", "Int32");
             EmitCode("ldstr \"{0}\"", "i");
+            EmitCode("call void [mscorlib]System.Console::WriteLine(string,object,object)");
         }
         else if (value.type == 'r')
         {
+            EmitCode("stloc {0}", "_r");
+            EmitCode("ldstr \"  Result: {0}{1}\"");
+            EmitCode("ldloc {0}", "_r");
             EmitCode("box [mscorlib]System.{0}", "Double");
             EmitCode("ldstr \"{0}\"", "r");
+            EmitCode("call void [mscorlib]System.Console::WriteLine(string,object,object)");
         }
         else if (value.type == 'b')
+        {
+            EmitCode("stloc {0}", "_i");
+            EmitCode("ldstr \"  Result: {0}\"");
+            EmitCode("ldloc {0}", "_i");
             EmitCode("box [mscorlib]System.{0}", "Boolean");
-        
-        EmitCode("call void [mscorlib]System.Console::WriteLine(string,object,object)");
+            EmitCode("call void [mscorlib]System.Console::WriteLine(string,object)");
+        }
+
 
         if(value.type == 'b')
             Console.WriteLine(value.val);
@@ -189,6 +211,9 @@ public class Compiler
 
     public static SemanticValue Create(string val, char type)
     {
+        if (!genCode)
+            return new SemanticValue();
+        
         SemanticValue res = new SemanticValue();
         res.type = type;
 
@@ -199,13 +224,13 @@ public class Compiler
         }
         if (type == 'i')
         {
-            res.val = int.Parse(val).ToString();
-            EmitCode("ldc.i4 {0}", int.Parse(val));
+            res.val = int.Parse(val).ToString(CultureInfo.InvariantCulture);
+            EmitCode("ldc.i4 {0}", res.val);
         }
         if (type == 'r')
         {
-            res.val = double.Parse(val).ToString(CultureInfo.InvariantCulture);
-            EmitCode("ldc.r8 {0}", double.Parse(val, CultureInfo.InvariantCulture));
+            res.val = double.Parse(val, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+            EmitCode("ldc.r8 {0}", res.val);
         }
 
         return res;
@@ -213,6 +238,8 @@ public class Compiler
 
     public static SemanticValue GetVariable(string id)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (!_identificators.ContainsKey(id))
             return new SemanticValue{ error = string.Format("  variable {0} not declared", id), exit = true };
         if (_identificators[id].Item2 == null)
@@ -225,6 +252,8 @@ public class Compiler
 
     public static SemanticValue Function(string func, SemanticValue exp)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (exp.error != null)
             return exp;
         if (exp.type == 'b')
@@ -252,7 +281,7 @@ public class Compiler
                 break;
             case "ctg":
                 EmitCode("stloc {0}", "_r");
-                EmitCode("ldc.r8 {0}", 1);
+                EmitCode("ldc.r8 {0}", 1.0);
                 EmitCode("ldloc {0}", "_r");
                 EmitCode("call float64 [mscorlib]System.Math::Tan(float64)");
                 EmitCode("div");
@@ -283,6 +312,8 @@ public class Compiler
 
     public static SemanticValue AritmeticalOp(SemanticValue left, SemanticValue right, Tokens t)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (right.error != null)
             return right;
         if (left.error != null)
@@ -297,30 +328,14 @@ public class Compiler
 
         res.type = (left.type == 'i' && right.type == 'i') ? 'i' : 'r';
 
-        if(left.type == 'i')
-            EmitCode("stloc {0}", "_i");
-        else if(left.type == 'r')
+        if (left.type == 'r' && right.type == 'i')
+            EmitCode("conv.r8");
+        else if(left.type == 'i' && right.type == 'r')
+        {
             EmitCode("stloc {0}", "_r");
-        if(right.type == 'i')
-            EmitCode("stloc {0}", "_ii");
-        else if (right.type == 'r')
-            EmitCode("stloc {0}", "_rr");
-        if (left.type == 'i')
-        {
-            EmitCode("ldloc {0}", "_i");
-            if(right.type == 'r')
-                EmitCode("conv.r8");
-        }
-        else if (left.type == 'r')
+            EmitCode("conv.r8");
             EmitCode("ldloc {0}", "_r");
-        if (right.type == 'i')
-        {
-            EmitCode("ldloc {0}", "_ii");
-            if(right.type == 'r')
-                EmitCode("conv.r8");
         }
-        else if (right.type == 'r')
-            EmitCode("ldloc {0}", "_rr");
 
         switch (t)
         {
@@ -350,7 +365,7 @@ public class Compiler
         }
 
         if (res.type == 'i')
-            res.val = ((int)result).ToString();
+            res.val = ((int)result).ToString(CultureInfo.InvariantCulture);
         else
             res.val = result.ToString(CultureInfo.InvariantCulture);
 
@@ -359,6 +374,8 @@ public class Compiler
 
     public static SemanticValue RelationalOp(SemanticValue left, SemanticValue right, Tokens t)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (right.error != null)
             return right;
         if (left.error != null)
@@ -382,6 +399,20 @@ public class Compiler
             }
             else if (left.type != 'b' && right.type != 'b')
             {
+                if (left.type == 'r' && right.type == 'i')
+                    EmitCode("conv.r8");
+                else if (left.type == 'i' && right.type == 'r')
+                {
+                    EmitCode("stloc {0}", "_r");
+                    EmitCode("conv.r8");
+                    EmitCode("ldloc {0}", "_r");
+                }
+                EmitCode("ceq");
+                if (t == Tokens.Diff)
+                {
+                    EmitCode("ldc.i4 {0}", 0);
+                    EmitCode("ceq");
+                }
                 double l = double.Parse(left.val, CultureInfo.InvariantCulture);
                 double r = double.Parse(right.val, CultureInfo.InvariantCulture);
                 bool result = t == Tokens.Equal ? l == r : l != r;
@@ -399,18 +430,31 @@ public class Compiler
             double r = double.Parse(right.val, CultureInfo.InvariantCulture);
             bool result = false;
 
+            if (left.type == 'r' && right.type == 'i')
+                EmitCode("conv.r8");
+            else if (left.type == 'i' && right.type == 'r')
+            {
+                EmitCode("stloc {0}", "_r");
+                EmitCode("conv.r8");
+                EmitCode("ldloc {0}", "_r");
+            }
+
             switch (t)
             {
                 case Tokens.Gt:
+                    EmitCode("cgt");
                     result = l > r;
                     break;
                 case Tokens.Lt:
+                    EmitCode("clt");
                     result = l < r;
                     break;
                 case Tokens.Gte:
+                    EmitCode("cgt");
                     result = l >= r;
                     break;
                 case Tokens.Lte:
+                    EmitCode("clt");
                     result = l <= r;
                     break;
                 default:
@@ -426,6 +470,8 @@ public class Compiler
 
     public static SemanticValue LogicalOp(SemanticValue left, SemanticValue right, Tokens t)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (right.error != null)
             return right;
         if (left.error != null)
@@ -464,6 +510,8 @@ public class Compiler
 
     public static SemanticValue UnaryMinusOp(SemanticValue value)
     {
+        if (!genCode)
+            return new SemanticValue();
         if (value.error != null)
             return value;
         if (value.type == 'b')
@@ -477,11 +525,11 @@ public class Compiler
         if (value.type == 'i')
         {
             int v = int.Parse(value.val);
-            res.val = (-v).ToString();
+            res.val = (-v).ToString(CultureInfo.InvariantCulture);
         }
         else
         {
-            double v = double.Parse(value.val);
+            double v = double.Parse(value.val, CultureInfo.InvariantCulture);
             res.val = (-v).ToString(CultureInfo.InvariantCulture);
         }
 
@@ -490,6 +538,8 @@ public class Compiler
 
     public static SemanticValue NegationOp(SemanticValue value)
     {
+        if(!genCode)
+            return new SemanticValue();
         if (value.error != null)
             return value;
         if (value.type != 'b')
